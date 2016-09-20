@@ -22,15 +22,25 @@ describe('Core', () => {
 	it('Properties input, output and process', (done) => {
 		const input = [plugin.types.sass, plugin.types.scss];
 		const output = plugin.types.css;
-		const process = () => 'foo';
+		const test = { foo: 'bar' };
+		const process = (data, cb) => {
+			Object.assign(data, { processed: true });
+			cb(data);
+		};
 		const createdPlugin = plugin(input, output, process);
 		expect(createdPlugin).to.have.property('input');
 		expect(createdPlugin.input).to.equal(input);
 		expect(createdPlugin).to.have.property('output');
 		expect(createdPlugin.output).to.equal(output);
 		expect(createdPlugin).to.have.property('process');
-		expect(createdPlugin.process).to.equal(process);
-		done();
+		expect(createdPlugin.process(test)).to.respondTo('then'); // process should return a promise
+		createdPlugin.process(test).then((result) => {
+			expect(result).to.have.property('foo');
+			expect(result.foo).to.equal('bar');
+			expect(result).to.have.property('processed');
+			expect(result.processed).to.be.true;
+			done();
+		});
 	});
 
 	it('Method getStream', (done) => {

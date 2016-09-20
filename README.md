@@ -16,7 +16,7 @@ This method creates a plugin that can be installed with [tribble](https://github
 This method requires three parameters :
 - `input` : array of input files types (taken from _plugin.types.*_)
 - `output` : output file type (taken from _plugin.types.*_)
-- `process` : process function (_function(file) { ... }_)
+- `process` : process function (_function(file, callback) { ... }_)
 
 ```js
 
