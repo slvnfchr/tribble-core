@@ -1,6 +1,6 @@
 {
   "name": "tribble-plugin",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Tribble plugin core module",
   "homepage": "https://github.com/slvnfchr/tribble-plugin",
   "main": "lib/index.js",
@@ -17,7 +17,8 @@
   "author": "Sylvain Foucher",
   "license": "MIT",
   "dependencies": {
-    "mime-types": "^2.1.12"
+    "mime-db": "^1.24.0",
+    "readdirp": "^2.1.0"
   },
   "devDependencies": {
     "chai": "^3.5.0",
