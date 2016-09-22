@@ -27,10 +27,6 @@ describe('Main module', () => {
 		expect(plugin.types).to.deep.equal(constants.types);
 		expect(plugin).to.have.property('mediatypes');
 		expect(plugin.mediatypes).to.deep.equal(constants.mediatypes);
-		expect(plugin).to.have.property('util');
-		expect(plugin.util).to.respondTo('build');
-		expect(plugin.util).to.respondTo('load');
-		expect(plugin.util).to.respondTo('lookup');
 		done();
 	});
 
