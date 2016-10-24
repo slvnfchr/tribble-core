@@ -20,8 +20,8 @@ describe('Core modules', () => {
 
 		it('Properties', (done) => {
 			const component = new Component();
-			expect(component).to.have.property('inports');
-			expect(component).to.have.property('outports');
+			expect(component).to.have.property('input');
+			expect(component).to.have.property('output');
 			done();
 		});
 
@@ -50,7 +50,7 @@ describe('Core modules', () => {
 			expect(port.component).to.equal(component);
 			expect(port).to.have.property('name');
 			expect(port.name).to.equal(name);
-			expect(component.inports[name]).to.equal(port);
+			expect(component.input[name]).to.equal(port);
 			done();
 		});
 
@@ -62,7 +62,7 @@ describe('Core modules', () => {
 			expect(port.component).to.equal(component);
 			expect(port).to.have.property('name');
 			expect(port.name).to.equal(name);
-			expect(component.outports[name]).to.equal(port);
+			expect(component.output[name]).to.equal(port);
 			done();
 		});
 
@@ -194,8 +194,8 @@ describe('Core modules', () => {
 			data[dataKey] = dataValue;
 			const graph = new Graph();
 			graph.initialize(component, data);
-			expect(component.inports).to.have.property(dataKey);
-			expect(component.getInput(dataKey).read().data).to.equal(dataValue);
+			expect(component.input).to.have.property(dataKey);
+			expect(component.input[dataKey].read().data).to.equal(dataValue);
 			done();
 		});
 
@@ -205,13 +205,13 @@ describe('Core modules', () => {
 			const capacity = 10;
 			const graph = new Graph();
 			graph.connect(upComponent, 'out', downComponent, 'in', capacity);
-			expect(upComponent.outports).to.have.property('out');
-			expect(upComponent.outports.out.connection.capacity).to.equal(capacity);
-			expect(upComponent.outports.out.connection.downComponent).to.equal(downComponent);
-			expect(downComponent.inports).to.have.property('in');
-			expect(upComponent.outports.out.connection).to.equal(downComponent.inports.in.connection);
-			expect(downComponent.inports.in.connection.upComponents.length).to.equal(1);
-			expect(downComponent.inports.in.connection.upComponents[0]).to.equal(upComponent);
+			expect(upComponent.output).to.have.property('out');
+			expect(upComponent.output.out.connection.capacity).to.equal(capacity);
+			expect(upComponent.output.out.connection.downComponent).to.equal(downComponent);
+			expect(downComponent.input).to.have.property('in');
+			expect(upComponent.output.out.connection).to.equal(downComponent.input.in.connection);
+			expect(downComponent.input.in.connection.upComponents.length).to.equal(1);
+			expect(downComponent.input.in.connection.upComponents[0]).to.equal(upComponent);
 			done();
 		});
 
@@ -219,9 +219,22 @@ describe('Core modules', () => {
 			const upComponent = new Component(path.resolve(__dirname, './utils/generator'));
 			const downComponent = new Component(path.resolve(__dirname, './utils/tracer'));
 			const graph = new Graph();
-			graph.initialize(upComponent, { length: 5 });
-			graph.connect(upComponent, 'out', downComponent, 'in', 5);
-			graph.run(done);
+			const count = 5;
+			let index = 0;
+			const listener = (ip) => {
+				const data = ip.data;
+				expect(data.name).to.equal(index);
+				index += 1;
+				if(index === count) {
+					process.removeListener('test', listener);
+					done();
+				}
+			};
+			process.addListener('test', listener);
+			graph.initialize(upComponent, { length: count });
+			graph.initialize(upComponent, { interval: 10 });
+			graph.connect(upComponent, 'out', downComponent, 'in', count);
+			graph.run();
 		});
 
 	});

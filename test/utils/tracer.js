@@ -1,9 +1,8 @@
 
 'use strict';
 
-module.exports = function tracer() {
-	const input = this.getInput('in');
-	const ip = input.read();
-	console.log('->', ip.data);
+module.exports = function tracer(input) {
+	const ip = input.in.read();
+	process.emit('test', ip);
 };
 
