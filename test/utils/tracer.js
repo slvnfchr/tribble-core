@@ -3,6 +3,6 @@
 
 module.exports = function tracer(input) {
 	const ip = input.in.read();
-	process.emit('test', ip);
+	if (ip) process.emit('test', ip);
 };
 

@@ -1,7 +1,6 @@
 
 'use strict';
 
-const path = require('path');
 const EventEmitter = require('events');
 const expect = require('chai').expect;
 const Component = require('../lib/core/component');
@@ -11,7 +10,6 @@ const OutputPort = require('../lib/core/port/output');
 const IP = require('../lib/core/ip');
 const Connection = require('../lib/core/connection/base');
 const ComponentConnection = require('../lib/core/connection/component');
-
 const Graph = require('../lib/core/graph');
 
 describe('Core modules', () => {
@@ -215,28 +213,6 @@ describe('Core modules', () => {
 			done();
 		});
 
-		it('Graph run', (done) => {
-			const upComponent = new Component(path.resolve(__dirname, './utils/generator'));
-			const downComponent = new Component(path.resolve(__dirname, './utils/tracer'));
-			const graph = new Graph();
-			const count = 5;
-			let index = 0;
-			const listener = (ip) => {
-				const data = ip.data;
-				expect(data.name).to.equal(index);
-				index += 1;
-				if(index === count) {
-					process.removeListener('test', listener);
-					done();
-				}
-			};
-			process.addListener('test', listener);
-			graph.initialize(upComponent, { length: count });
-			graph.initialize(upComponent, { interval: 10 });
-			graph.connect(upComponent, 'out', downComponent, 'in', count);
-			graph.run();
-		});
-
 	});
-});
 
+});
