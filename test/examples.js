@@ -22,11 +22,10 @@ describe('Simple graph execution test cases', () => {
 		graph.initialize(upComponent, { length: count });
 		graph.initialize(upComponent, { interval });
 		graph.connect(upComponent, 'out', downComponent, 'in', count + 1, timeout);
-		setTimeout(() => {
+		graph.run(() => {
 			process.removeListener('test', listener);
 			done();
-		}, timeout);
-		graph.run();
+		});
 	});
 
 	it('If connection capacity is reached, all IPs should be emitted', (done) => {
@@ -38,15 +37,14 @@ describe('Simple graph execution test cases', () => {
 		const interval = 20;
 		let index = 0;
 		const start = process.hrtime();
-		let time = process.hrtime();
+		let time = start;
 		const listener = (ip) => {
 			const data = ip.data;
 			const diffTime = Math.round(process.hrtime(time)[1] / 1e6);
 			const elapsedTime = Math.round(process.hrtime(start)[1] / 1e6);
-			time = process.hrtime();
 			expect(data.name).to.equal(index);
 			if (index === 0) { // first IP is emitted after capacity is reached
-				expect(diffTime - ((capacity - 1) * interval)).to.be.below(interval);
+				expect(elapsedTime).to.be.at.least((capacity - 1) * interval);
 				expect(downComponent.input.in.connection.pendingIPCount).to.equal(capacity - 1);
 			} else if (index > 0 && index < capacity) { // first IPs are emitted when capacity is reached
 				expect(diffTime).to.be.below(interval);
@@ -54,16 +52,17 @@ describe('Simple graph execution test cases', () => {
 				expect(elapsedTime).to.be.at.least(interval * index);
 			}
 			index += 1;
-			if (index === count) {
-				process.removeListener('test', listener);
-				done();
-			}
+			time = process.hrtime();
 		};
 		process.addListener('test', listener);
 		graph.initialize(upComponent, { length: count });
 		graph.initialize(upComponent, { interval });
 		graph.connect(upComponent, 'out', downComponent, 'in', capacity);
-		graph.run();
+		graph.run(() => {
+			expect(index).to.equal(count);
+			process.removeListener('test', listener);
+			done();
+		});
 	});
 
 	it('If connection timeout is reached, only first IP should be emitted', (done) => {
@@ -81,11 +80,10 @@ describe('Simple graph execution test cases', () => {
 		graph.initialize(upComponent, { length: count });
 		graph.initialize(upComponent, { interval });
 		graph.connect(upComponent, 'out', downComponent, 'in', 0, timeout);
-		setTimeout(() => {
+		graph.run(() => {
 			process.removeListener('test', listener);
 			done();
-		}, 2 * interval);
-		graph.run();
+		});
 	});
 
 });
