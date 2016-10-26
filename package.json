@@ -16,10 +16,7 @@
   },
   "author": "Sylvain Foucher",
   "license": "MIT",
-  "dependencies": {
-    "mime-db": "latest",
-    "readdirp": "^2.1.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "chai": "^3.5.0",
     "eslint": "^3.4.0",

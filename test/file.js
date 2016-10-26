@@ -52,18 +52,15 @@ describe('File components', () => {
 
 		it('Walker component should emit IPs with File data', (done) => {
 			const upComponent = new Component(path.resolve(__dirname, '../lib/file/walker'));
-			const downComponent = new Component(path.resolve(__dirname, './utils/tracer'));
 			const graph = new Graph();
 			graph.initialize(upComponent, { base: path.resolve(__dirname, '../') });
 			graph.initialize(upComponent, { mask: '^[^.]+' });
-			const listener = (ip) => {
-				expect(ip.data).to.be.instanceof(File);
-			};
-			process.addListener('test', listener);
-			graph.connect(upComponent, 'out', downComponent, 'in');
-			graph.run(() => {
-				done();
+			const downComponent = new Component((input) => {
+				const ip = input.in.read();
+				expect(ip.data).to.have.all.keys('base', 'name', 'path', 'fullPath', 'extension', 'level', 'mediatype', 'data');
 			});
+			graph.connect(upComponent, 'out', downComponent, 'in');
+			graph.run(done);
 		});
 
 	});

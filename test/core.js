@@ -19,8 +19,14 @@ describe('Core modules', () => {
 
 		it('Properties', (done) => {
 			const component = new Component();
+			expect(component).to.have.property('handler');
+			expect(component).to.have.property('pid');
 			expect(component).to.have.property('input');
 			expect(component).to.have.property('output');
+			expect(component).to.respondTo('initialize');
+			expect(component).to.respondTo('run');
+			expect(component).to.respondTo('execute');
+			expect(component).to.respondTo('kill');
 			done();
 		});
 
@@ -216,27 +222,22 @@ describe('Core modules', () => {
 
 		it('If connection capacity is not reached, no IP should be emitted', (done) => {
 			const upComponent = new Component(path.resolve(__dirname, './utils/generator'));
-			const downComponent = new Component(path.resolve(__dirname, './utils/tracer'));
+			const downComponent = new Component((input) => {
+				const ip = input.in.read();
+				expect(true).to.be.false;
+			});
 			const graph = new Graph();
 			const count = 5;
 			const interval = 5;
 			const timeout = count * interval;
-			const listener = (ip) => {
-				expect(ip).to.be.null;
-			};
-			process.addListener('test', listener);
 			graph.initialize(upComponent, { length: count });
 			graph.initialize(upComponent, { interval });
 			graph.connect(upComponent, 'out', downComponent, 'in', count + 1, timeout);
-			graph.run(() => {
-				process.removeListener('test', listener);
-				done();
-			});
+			graph.run(done);
 		});
 
 		it('If connection capacity is reached, all IPs should be emitted', (done) => {
 			const upComponent = new Component(path.resolve(__dirname, './utils/generator'));
-			const downComponent = new Component(path.resolve(__dirname, './utils/tracer'));
 			const graph = new Graph();
 			const count = 10;
 			const capacity = 5;
@@ -244,7 +245,8 @@ describe('Core modules', () => {
 			let index = 0;
 			const start = process.hrtime();
 			let time = start;
-			const listener = (ip) => {
+			const downComponent = new Component((input) => {
+				const ip = input.in.read();
 				const data = ip.data;
 				const diffTime = Math.round(process.hrtime(time)[1] / 1e6);
 				const elapsedTime = Math.round(process.hrtime(start)[1] / 1e6);
@@ -259,37 +261,31 @@ describe('Core modules', () => {
 				}
 				index += 1;
 				time = process.hrtime();
-			};
-			process.addListener('test', listener);
+			});
 			graph.initialize(upComponent, { length: count });
 			graph.initialize(upComponent, { interval });
 			graph.connect(upComponent, 'out', downComponent, 'in', capacity);
 			graph.run(() => {
 				expect(index).to.equal(count);
-				process.removeListener('test', listener);
 				done();
 			});
 		});
 
 		it('If connection timeout is reached, only first IP should be emitted', (done) => {
 			const upComponent = new Component(path.resolve(__dirname, './utils/generator'));
-			const downComponent = new Component(path.resolve(__dirname, './utils/tracer'));
 			const graph = new Graph();
 			const count = 5;
 			const interval = 50;
 			const timeout = 10; // timeout below emission interval
-			const listener = (ip) => {
+			const downComponent = new Component((input) => {
+				const ip = input.in.read();
 				const data = ip.data;
 				expect(data.name).to.equal(0);
-			};
-			process.addListener('test', listener);
+			});
 			graph.initialize(upComponent, { length: count });
 			graph.initialize(upComponent, { interval });
 			graph.connect(upComponent, 'out', downComponent, 'in', 0, timeout);
-			graph.run(() => {
-				process.removeListener('test', listener);
-				done();
-			});
+			graph.run(done);
 		});
 
 	});
