@@ -22,12 +22,13 @@ describe('File components', () => {
 		it('Minimal instantiation', (done) => {
 			const name = 'test.htm';
 			const file = File.create({ fullPath: path.resolve(__dirname, name) });
-			expect(file).to.have.all.keys('base', 'name', 'path', 'fullPath', 'extension', 'mediatype', 'data');
+			expect(file).to.have.all.keys('base', 'name', 'path', 'fullPath', 'extension', 'mediatype', 'contents');
 			expect(file.base).to.be.null;
 			expect(file.name).to.equal(name);
 			expect(file.path).to.be.null;
 			expect(file.fullPath).to.equal(path.resolve(__dirname, name));
 			expect(file.mediatype).to.equal('text/html');
+			expect(file.contents).to.be.null;
 			done();
 		});
 
@@ -36,7 +37,7 @@ describe('File components', () => {
 			const file = File.create(properties);
 			Object.assign(properties, {
 				base: null,
-				data: null,
+				contents: null,
 				path: null,
 				name: 'file.js',
 				extension: 'js',
@@ -48,7 +49,7 @@ describe('File components', () => {
 
 	});
 
-	describe('File tree traversal', () => {
+	describe('Components', () => {
 
 		it('Walker component should emit IPs with File data', (done) => {
 			const upComponent = new Component(path.resolve(__dirname, '../lib/file/walker'));
@@ -57,9 +58,24 @@ describe('File components', () => {
 			graph.initialize(upComponent, { mask: '^[^.]+' });
 			const downComponent = new Component((input) => {
 				const ip = input.in.read();
-				expect(ip.data).to.have.all.keys('base', 'name', 'path', 'fullPath', 'extension', 'level', 'mediatype', 'data');
+				expect(ip.data).to.have.all.keys('base', 'name', 'path', 'fullPath', 'extension', 'level', 'mediatype', 'contents');
 			});
 			graph.connect(upComponent, 'out', downComponent, 'in');
+			graph.run(done);
+		});
+
+		it('Reader component should emit IPs with file contents', (done) => {
+			const upComponent = new Component(path.resolve(__dirname, '../lib/file/walker'));
+			const downComponent = new Component(path.resolve(__dirname, '../lib/file/reader'));
+			const finalComponent = new Component((input) => {
+				const ip = input.in.read();
+				expect(ip.data.contents).not.to.be.null;
+			});
+			const graph = new Graph();
+			graph.initialize(upComponent, { base: path.resolve(__dirname, '../') });
+			graph.initialize(upComponent, { mask: '^[^.]+' });
+			graph.connect(upComponent, 'out', downComponent, 'in');
+			graph.connect(downComponent, 'out', finalComponent, 'in');
 			graph.run(done);
 		});
 

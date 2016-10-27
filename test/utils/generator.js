@@ -8,7 +8,11 @@ module.exports = function generator(input, output) {
 		output.out.send({ name: index });
 	};
 	for (let i = 0; i < length; i += 1) {
-		setTimeout(emitter(i), i * interval);
+		if (interval) {
+			setTimeout(emitter(i), i * interval);
+		} else {
+			emitter(i)();
+		}
 	}
 };
 
