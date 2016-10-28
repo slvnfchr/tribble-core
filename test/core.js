@@ -4,13 +4,13 @@
 const path = require('path');
 const EventEmitter = require('events');
 const expect = require('chai').expect;
-const Port = require('../lib/core/port/base');
-const ConnectionBase = require('../lib/core/connection/base');
+const Port = require('../lib/core/port/Base');
+const ConnectionBase = require('../lib/core/connection/Base');
 const library = require('../lib/');
 
 const Component = library.Component;
-const InputPort = library.Input;
-const OutputPort = library.Output;
+const Input = library.Input;
+const Output = library.Output;
 const IP = library.IP;
 const IIPConnection = library.IIPConnection;
 const Connection = library.Connection;
@@ -79,7 +79,7 @@ describe('Core classes', () => {
 		it('Input port specific properties and methods', (done) => {
 			const component = new Component();
 			const name = 'in';
-			const port = new InputPort(component, name);
+			const port = new Input(component, name);
 			expect(port).to.have.property('component');
 			expect(port.component).to.equal(component);
 			expect(port).to.have.property('name');
@@ -92,7 +92,7 @@ describe('Core classes', () => {
 		it('Output port specific properties and methods', (done) => {
 			const component = new Component();
 			const name = 'out';
-			const port = new OutputPort(component, name);
+			const port = new Output(component, name);
 			expect(port).to.have.property('component');
 			expect(port.component).to.equal(component);
 			expect(port).to.have.property('name');
@@ -218,8 +218,8 @@ describe('Core classes', () => {
 
 		it('Ports attachment', (done) => {
 			const component = new Component();
-			const input = new InputPort(component, 'in');
-			const output = new OutputPort(component, 'out');
+			const input = new Input(component, 'in');
+			const output = new Output(component, 'out');
 			const connection = new ConnectionBase();
 			connection.connect(output, input);
 			expect(input.connection).to.equal(connection);
