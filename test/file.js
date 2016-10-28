@@ -3,9 +3,13 @@
 
 const path = require('path');
 const expect = require('chai').expect;
-const Component = require('../lib/core/component');
-const Graph = require('../lib/core/graph');
-const File = require('../lib/file/file');
+const library = require('../lib/');
+
+const Component = library.Component;
+const Graph = library.Graph;
+const File = library.file.File;
+const walker = library.file.walker;
+const reader = library.file.reader;
 
 describe('File components', () => {
 
@@ -52,7 +56,7 @@ describe('File components', () => {
 	describe('Components', () => {
 
 		it('Walker component should emit IPs with File data', (done) => {
-			const upComponent = new Component(path.resolve(__dirname, '../lib/file/walker'));
+			const upComponent = walker();
 			const graph = new Graph();
 			graph.initialize(upComponent, { base: path.resolve(__dirname, '../') });
 			graph.initialize(upComponent, { mask: '^[^.]+' });
@@ -65,8 +69,8 @@ describe('File components', () => {
 		});
 
 		it('Reader component should emit IPs with file contents', (done) => {
-			const upComponent = new Component(path.resolve(__dirname, '../lib/file/walker'));
-			const downComponent = new Component(path.resolve(__dirname, '../lib/file/reader'));
+			const upComponent = walker();
+			const downComponent = reader();
 			const finalComponent = new Component((input) => {
 				const ip = input.in.read();
 				expect(ip.data.contents).not.to.be.null;

@@ -4,15 +4,17 @@
 const path = require('path');
 const EventEmitter = require('events');
 const expect = require('chai').expect;
-const Component = require('../lib/core/component');
 const Port = require('../lib/core/port/base');
-const InputPort = require('../lib/core/port/input');
-const OutputPort = require('../lib/core/port/output');
-const IP = require('../lib/core/ip');
-const Connection = require('../lib/core/connection/base');
-const IIPConnection = require('../lib/core/connection/iip');
-const ComponentConnection = require('../lib/core/connection/component');
-const Graph = require('../lib/core/graph');
+const ConnectionBase = require('../lib/core/connection/base');
+const library = require('../lib/');
+
+const Component = library.Component;
+const InputPort = library.Input;
+const OutputPort = library.Output;
+const IP = library.IP;
+const IIPConnection = library.IIPConnection;
+const Connection = library.Connection;
+const Graph = library.Graph;
 
 describe('Core classes', () => {
 
@@ -121,7 +123,7 @@ describe('Core classes', () => {
 	describe('Connection', () => {
 
 		it('Properties, default values and methods', (done) => {
-			const connection = new Connection();
+			const connection = new ConnectionBase();
 			expect(connection).to.be.instanceof(EventEmitter);
 			expect(connection).to.have.property('closed');
 			expect(connection.closed).to.be.false;
@@ -146,13 +148,13 @@ describe('Core classes', () => {
 		it('IP injection and retrieval', (done) => {
 			const properties = { foo: 'bar' };
 			const ip = new IP(properties);
-			const connection = new Connection();
+			const connection = new ConnectionBase();
 			let enqueue = 0;
-			connection.addListener(Connection.events.ENQUEUE, () => {
+			connection.addListener(ConnectionBase.events.ENQUEUE, () => {
 				enqueue += 1;
 			});
 			let dequeue = 0;
-			connection.addListener(Connection.events.DEQUEUE, () => {
+			connection.addListener(ConnectionBase.events.DEQUEUE, () => {
 				dequeue += 1;
 			});
 			expect(connection.hasData()).to.equal(false);
@@ -175,7 +177,7 @@ describe('Core classes', () => {
 			const capacity = 5;
 			const properties = { foo: 'bar' };
 			const ip = new IP(properties);
-			const connection = new ComponentConnection(capacity);
+			const connection = new Connection(capacity);
 			expect(connection).to.have.property('capacity');
 			expect(connection.capacity).to.equal(capacity);
 			for (let i = 0, n = capacity + 1; i < n; i += 1) {
@@ -189,7 +191,7 @@ describe('Core classes', () => {
 			const capacity = 10;
 			const properties = { foo: 'bar' };
 			const ip = new IP(properties);
-			const connection = new Connection(capacity);
+			const connection = new ConnectionBase(capacity);
 			for (let i = 0, n = capacity; i < n; i += 1) {
 				connection.putData(ip);
 			}
@@ -201,9 +203,9 @@ describe('Core classes', () => {
 		it('Close should emit an event and purge connection contents', (done) => {
 			const properties = { foo: 'bar' };
 			const ip = new IP(properties);
-			const connection = new Connection();
+			const connection = new ConnectionBase();
 			let closed = connection.closed;
-			connection.addListener(Connection.events.CLOSE, () => {
+			connection.addListener(ConnectionBase.events.CLOSE, () => {
 				closed = connection.closed;
 			});
 			connection.putData(ip);
@@ -218,7 +220,7 @@ describe('Core classes', () => {
 			const component = new Component();
 			const input = new InputPort(component, 'in');
 			const output = new OutputPort(component, 'out');
-			const connection = new Connection();
+			const connection = new ConnectionBase();
 			connection.connect(output, input);
 			expect(input.connection).to.equal(connection);
 			expect(output.connection).to.equal(connection);
@@ -259,6 +261,7 @@ describe('Core classes', () => {
 			const graph = new Graph();
 			graph.connect(upComponent, 'out', downComponent, 'in', capacity);
 			expect(upComponent.output).to.have.property('out');
+			expect(upComponent.output.out.connection).to.be.instanceof(Connection);
 			expect(upComponent.output.out.connection.capacity).to.equal(capacity);
 			expect(upComponent.output.out.connection.downComponent).to.equal(downComponent);
 			expect(downComponent.input).to.have.property('in');
@@ -355,7 +358,7 @@ describe('Core classes', () => {
 				graph.run(done);
 			});
 		});
-		
+
 		describe('Linear graph with three components', () => {
 
 			it('Connections with no capacity and timeout', (done) => {

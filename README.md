@@ -1,67 +1,54 @@
-# tribble-plugin
+# tribble-core
 
-Tribble plugin core module
+Tribble core classes and components based on flow-based programming paradigm.  
+All classes are written in ES2015 and designed for Node.js runtime (with no dependencies).
 
-## Install
+## Core classes
 
-```bash
-$ npm install tribble-plugin --save
-```
+- **Component** for code components defined as a function, a local module (through its path)
+- **Connection** to link components
+- **Graph** to describe a set of components and connections forming a network
+- **IP** for information packets (IP) or chunks of data flowing between components through connections
+- **IIPConnection** for initial IP connections used to initialize a component with specific parameters
+- **Input** and **Output** for components input and output ports
 
-## Usage
+## File processing
 
-### plugin(input, ouput, type, process)
+- **File** for file IP with specific properties (fullPath, mediatype...)
+- **walker** to get a component for tree traversal with base path and mask as inputs, File instance as output
+- **reader** to get a component for file reading that appends file contents to incoming file IPs
 
-This method creates a plugin that can be installed with [tribble](https://github.com/slvnfchr/tribble)'s install command
+## Components
 
-This method requires the following parameters :
-- `input` : input files media type(s) (_plugin.mediatypes.*_)
-- `output` : output file media type(s) (_plugin.mediatypes.*_)
-- `type` : the plugin type (_plugin.types.*_)
-- `process` : process function (_function(input, output, error) { ... }_)
+Components can be defined with a function, a local module (through its path) or a remote module (URL)
+
+### Function
 
 ```js
 
-const plugin = require('tribble-plugin');
-
-module.exports = plugin(
-	[plugin.mediatypes.scss, plugin.mediatypes.sass], // input file media types
-	plugin.mediatypes.css, // output file media type
-	plugin.types.PREPROCESSOR, // plugin type
-	function(input, output, error) { // plugin core processing function
-		const file = input.read(); // file is a File instance
-		// ...
-		if(err) {
-			error.write(err);
-		} else {
-			output.write(result);
-		}
-	}
-);
+const core = require('tribble-core');
+const component = new core.Component((input, ouput) => {
+	const data = input.read();
+	Object.assign(data, { newproperty: property });
+	ouput.send(data);
+});
 
 ```
+### Local module
 
-File instances have the following properties :
-- base : the base path of the distribution the file belongs to
-- path : the path of the file relative to the distribution's root
-- fullPath : the full path of the file
-- type : the media type of the file (_plugin.mediatypes.*_)
-- data : the file contents for non binary files
+```js
 
+const core = require('tribble-core');
+const component = new core.Component('./component');
+```
 
+The corresponding _component.js_ should be as follow :
 
+```js
+module.exports = (input, ouput) => {
+	const data = input.read();
+	Object.assign(data, { newproperty: value });
+	ouput.send(data);
+};
 
-### plugin.types
-
-Object with types of plugins :
-- plugin.types.PREPROCESSOR (ex: SASS, Coffeescript)
-- plugin.types.TRANSFORM (any transformation plugin, order independant)
-- plugin.types.POSTPROCESSOR (ex: postCSS, r.js)
-- plugin.types.AGGREGATOR (ex: templating engine)
-- plugin.types.MINIFIER (ex: closure compiler)
-- plugin.types.PACKAGER (ex: zip packaging)
-
-
-### plugin.mediatypes
-
-Map of mediatypes by extension based on [mime-db](https://github.com/jshttp/mime-db) (ex: plugin.mediatypes.scss)
+```

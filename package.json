@@ -1,8 +1,8 @@
 {
-  "name": "tribble-plugin",
-  "version": "0.0.4",
-  "description": "Tribble plugin core module",
-  "homepage": "https://github.com/slvnfchr/tribble-plugin",
+  "name": "tribble-core",
+  "version": "0.1.0",
+  "description": "Tribble core classes and components",
+  "homepage": "https://github.com/slvnfchr/tribble-core",
   "main": "lib/index.js",
   "scripts": {
     "test": "mocha --reporter spec test/*.js",
@@ -12,10 +12,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/slvnfchr/tribble-plugin.git"
+    "url": "https://github.com/slvnfchr/tribble-core.git"
   },
   "author": "Sylvain Foucher",
   "license": "MIT",
+  "engines" : { 
+  	"node" : ">=4.3.2"
+  },
+  "engineStrict": true,
   "dependencies": {},
   "devDependencies": {
     "chai": "^3.5.0",
