@@ -1,7 +1,7 @@
 {
   "name": "tribble-core",
   "version": "0.1.0",
-  "description": "Tribble core classes and components",
+  "description": "Tribble core classes",
   "homepage": "https://github.com/slvnfchr/tribble-core",
   "main": "lib/index.js",
   "scripts": {

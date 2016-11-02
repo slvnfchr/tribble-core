@@ -12,12 +12,6 @@ All classes are written in ES2015 and designed for Node.js runtime (with no depe
 - **IIPConnection** for initial IP connections used to initialize a component with specific parameters
 - **Input** and **Output** for components input and output ports
 
-## File processing
-
-- **File** for file IP with specific properties (fullPath, mediatype...)
-- **walker** to get a component for tree traversal with base path and mask as inputs, File instance as output
-- **reader** to get a component for file reading that appends file contents to incoming file IPs
-
 ## Components
 
 Components can be defined with a function, a local module (through its path) or a remote module (URL)
