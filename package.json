@@ -1,6 +1,6 @@
 {
   "name": "tribble-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tribble core classes",
   "homepage": "https://github.com/slvnfchr/tribble-core",
   "main": "lib/index.js",

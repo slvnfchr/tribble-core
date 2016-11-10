@@ -239,7 +239,19 @@ describe('Core classes', () => {
 			done();
 		});
 
-		it('Component initialization with intial IP connection', (done) => {
+		it('Component initialization with value creates a default "in" port', (done) => {
+			const component = new Component();
+			const data = 12;
+			const graph = new Graph();
+			graph.initialize(component, data);
+			expect(component.input).to.have.property('in');
+			expect(component.input.in).to.have.property('connection');
+			expect(component.input.in.connection).to.be.instanceof(IIPConnection);
+			expect(component.input.in.read().data).to.equal(data);
+			done();
+		});
+
+		it('Component initialization with object', (done) => {
 			const component = new Component();
 			const data = {};
 			const dataKey = 'size';
@@ -251,6 +263,21 @@ describe('Core classes', () => {
 			expect(component.input[dataKey]).to.have.property('connection');
 			expect(component.input[dataKey].connection).to.be.instanceof(IIPConnection);
 			expect(component.input[dataKey].read().data).to.equal(dataValue);
+			done();
+		});
+
+		it('Component input port reading shorthand', (done) => {
+			const component = new Component();
+			const data = {};
+			const dataKey = 'size';
+			const dataValue = 12;
+			data[dataKey] = dataValue;
+			const graph = new Graph();
+			graph.initialize(component, data);
+			expect(component.input.read()).to.equal(dataValue);
+			data.doublesize = 2 * dataValue;
+			graph.initialize(component, data);
+			expect(component.input.read()).to.deep.equal(data);
 			done();
 		});
 
