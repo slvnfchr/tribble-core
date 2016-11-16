@@ -16,6 +16,28 @@ const IIPConnection = library.IIPConnection;
 const Connection = library.Connection;
 const Graph = library.Graph;
 
+const searchCache = (moduleName, callback) => {
+	let moduleFound = require.resolve(moduleName);
+	if (moduleFound) moduleFound = require.cache[moduleFound];
+	if (moduleFound) {
+		const traverse = (mod) => {
+			mod.children.forEach(child => traverse(child));
+			callback(mod);
+		};
+		traverse(moduleFound);
+	}
+};
+const purgeCache = (moduleName) => {
+	searchCache(moduleName, (mod) => {
+		delete require.cache[mod.id];
+	});
+	Object.keys(module.constructor._pathCache).forEach((cacheKey) => { // eslint-disable-line no-underscore-dangle
+		if (cacheKey.indexOf(moduleName) > 0) {
+			delete module.constructor._pathCache[cacheKey]; // eslint-disable-line no-underscore-dangle
+		}
+	});
+};
+
 describe('Core classes', () => {
 
 	describe('Component class', () => {
@@ -33,6 +55,8 @@ describe('Core classes', () => {
 			expect(component.output).to.be.an('object');
 			expect(component).to.have.property('fork');
 			expect(component.fork).to.equal(false);
+			expect(component).to.have.property('timeout');
+			expect(component.timeout).to.equal(0);
 			expect(component).to.respondTo('initialize');
 			expect(component).to.respondTo('activate');
 			expect(component).to.respondTo('execute');
@@ -302,27 +326,32 @@ describe('Core classes', () => {
 
 });
 
-
 [false, true].forEach((fork) => {
 
 	describe(fork ? 'Graph execution with forked processes' : 'Graph execution on main thread', () => {
 
-		describe('Linear graph with two components', () => {
+		beforeEach(() => {
+			purgeCache(path.resolve(__dirname, './utils/generator'));
+			purgeCache(path.resolve(__dirname, './utils/copier'));
+			purgeCache(path.resolve(__dirname, './utils/copier2'));
+		});
+
+		describe('Linear graphs', () => {
 
 			it('If connection capacity is not reached, no IP should be emitted', (done) => {
-				const upComponent = new Component(path.resolve(__dirname, './utils/generator'));
-				upComponent.fork = fork;
-				const downComponent = new Component(() => {
-					expect(true).to.be.false;
-				});
 				const start = process.hrtime();
 				const graph = new Graph();
 				const count = 5;
 				const interval = 0;
 				const timeout = interval + 1;
+				const upComponent = new Component(path.resolve(__dirname, './utils/generator'), timeout);
+				upComponent.fork = fork;
+				const downComponent = new Component(() => {
+					expect(true).to.be.false;
+				});
 				graph.initialize(upComponent, { length: count });
 				graph.initialize(upComponent, { interval });
-				graph.connect(upComponent, 'out', downComponent, 'in', count + 1, timeout);
+				graph.connect(upComponent, 'out', downComponent, 'in', count + 1);
 				graph.run(() => {
 					const elapsedTime = Math.round(process.hrtime(start)[1] / 1e6);
 					expect(elapsedTime).to.be.at.least((interval * (count - 1)) + timeout);
@@ -331,16 +360,16 @@ describe('Core classes', () => {
 			});
 
 			it('If connection capacity is reached, all IPs should be emitted', (done) => {
-				const upComponent = new Component(path.resolve(__dirname, './utils/generator'));
-				upComponent.fork = fork;
 				const graph = new Graph();
 				const count = 10;
 				const capacity = 5;
-				const interval = 1;
-				const timeout = fork ? interval + 5 : interval + 1;
+				const interval = 5;
+				const timeout = (count * interval) + interval;
 				let index = 0;
 				const start = process.hrtime();
 				let time = start;
+				const upComponent = new Component(path.resolve(__dirname, './utils/generator'), timeout);
+				upComponent.fork = fork;
 				const downComponent = new Component((input) => {
 					const ip = input.in.read();
 					const data = ip.data;
@@ -360,20 +389,20 @@ describe('Core classes', () => {
 				});
 				graph.initialize(upComponent, { length: count });
 				graph.initialize(upComponent, { interval });
-				graph.connect(upComponent, 'out', downComponent, 'in', capacity, timeout);
+				graph.connect(upComponent, 'out', downComponent, 'in', capacity);
 				graph.run(() => {
 					expect(index).to.equal(count);
 					done();
 				});
 			});
 
-			it('If connection timeout is reached, only first IP should be emitted', (done) => {
-				const upComponent = new Component(path.resolve(__dirname, './utils/generator'));
-				upComponent.fork = fork;
+			it('If component timeout is reached, only first IP should be emitted', (done) => {
 				const graph = new Graph();
 				const count = 5;
-				const interval = 10;
-				const timeout = 5; // timeout below emission interval
+				const interval = 20;
+				const timeout = 10; // timeout below emission interval
+				const upComponent = new Component(path.resolve(__dirname, './utils/generator'), timeout);
+				upComponent.fork = fork;
 				const downComponent = new Component((input) => {
 					const ip = input.in.read();
 					const data = ip.data;
@@ -381,23 +410,20 @@ describe('Core classes', () => {
 				});
 				graph.initialize(upComponent, { length: count });
 				graph.initialize(upComponent, { interval });
-				graph.connect(upComponent, 'out', downComponent, 'in', 0, timeout);
+				graph.connect(upComponent, 'out', downComponent, 'in');
 				graph.run(done);
 			});
-		});
 
-		describe('Linear graph with three components', () => {
-
-			it('Connections with no capacity and timeout', (done) => {
-				const firstComponent = new Component(path.resolve(__dirname, './utils/generator'));
-				firstComponent.fork = fork;
-				const secondComponent = new Component(path.resolve(__dirname, './utils/copier'));
-				secondComponent.fork = fork;
+			it('With three components', (done) => {
 				const graph = new Graph();
 				const count = 5;
 				const interval = 5;
-				const timeout = 10;
+				const timeout = (count + 1) * interval;
 				let index = 0;
+				const firstComponent = new Component(path.resolve(__dirname, './utils/generator'), timeout);
+				firstComponent.fork = fork;
+				const secondComponent = new Component(path.resolve(__dirname, './utils/copier'), interval + interval);
+				secondComponent.fork = fork;
 				const finalComponent = new Component((input) => {
 					const ip = input.in.read();
 					expect(ip.data.name).to.equal(index);
@@ -406,8 +432,80 @@ describe('Core classes', () => {
 				graph.initialize(firstComponent, { length: count });
 				graph.initialize(firstComponent, { interval });
 				graph.initialize(secondComponent, { interval });
-				graph.connect(firstComponent, 'out', secondComponent, 'in', 0, timeout);
-				graph.connect(secondComponent, 'out', finalComponent, 'in', 0, timeout);
+				graph.connect(firstComponent, 'out', secondComponent, 'in');
+				graph.connect(secondComponent, 'out', finalComponent, 'in');
+				graph.run(() => {
+					expect(index).to.equal(count);
+					done();
+				});
+			});
+
+		});
+
+		describe('Non-linear graphs', () => {
+
+			it('Graph with dead branch', (done) => {
+				const graph = new Graph();
+				const count = 5;
+				const interval = 5;
+				const timeout = (count + 1) * interval;
+				let index = 0;
+				const firstComponent = new Component(path.resolve(__dirname, './utils/generator'), timeout);
+				firstComponent.fork = fork;
+				const secondComponent = new Component(path.resolve(__dirname, './utils/copier'), interval + 1);
+				secondComponent.fork = fork;
+				const deadComponent = new Component(path.resolve(__dirname, './utils/copier2'), interval + 1);
+				deadComponent.fork = fork;
+				const finalComponent = new Component((input) => {
+					const ip = input.in.read();
+					expect(ip.data.name).to.equal(index);
+					index += 1;
+				});
+				graph.initialize(firstComponent, { length: count });
+				graph.initialize(firstComponent, { interval });
+				graph.initialize(secondComponent, { interval });
+				graph.initialize(deadComponent, { interval });
+				graph.connect(firstComponent, 'out', secondComponent, 'in');
+				graph.connect(firstComponent, 'out2', deadComponent, 'in');
+				graph.connect(secondComponent, 'out', finalComponent, 'in');
+				graph.connect(deadComponent, 'out', finalComponent, 'in');
+				graph.run(() => {
+					expect(index).to.equal(count);
+					done();
+				});
+			});
+
+			it('Graph with asynchronous branches', (done) => {
+				const graph = new Graph();
+				const count = 10;
+				const interval = 5;
+				const timeout = (count + 1) * interval;
+				let index = 0;
+				const firstComponent = new Component(path.resolve(__dirname, './utils/generator'), timeout);
+				firstComponent.fork = fork;
+				const dispatcher = new Component((input, output) => {
+					const ip = input.in.read();
+					const branch = Math.random() < 0.5 ? 1 : 2;
+					output[`out${branch}`].send(ip);
+				});
+				const secondComponent = new Component(path.resolve(__dirname, './utils/copier'), interval + interval);
+				secondComponent.fork = fork;
+				const thirdComponent = new Component(path.resolve(__dirname, './utils/copier2'), (2 * interval) + interval);
+				thirdComponent.fork = fork;
+				const finalComponent = new Component((input) => {
+					const ip = input.in.read();
+					expect(ip.data).not.to.be.null;
+					index += 1;
+				});
+				graph.initialize(firstComponent, { length: count });
+				graph.initialize(firstComponent, { interval });
+				graph.connect(firstComponent, 'out', dispatcher, 'in');
+				graph.initialize(secondComponent, { interval });
+				graph.connect(dispatcher, 'out1', secondComponent, 'in');
+				graph.initialize(thirdComponent, { interval: 2 * interval });
+				graph.connect(dispatcher, 'out2', thirdComponent, 'in');
+				graph.connect(secondComponent, 'out', finalComponent, 'in');
+				graph.connect(thirdComponent, 'out', finalComponent, 'in');
 				graph.run(() => {
 					expect(index).to.equal(count);
 					done();
